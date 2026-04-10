@@ -110,7 +110,7 @@ const QuizPage = () => {
           >
             <Card className="border-none shadow-xl overflow-hidden rounded-3xl bg-white">
               <CardContent className="p-8 space-y-8">
-                <h3 className="text-2xl font-bold text-slate-800 leading-tight">
+                <h3 className="text-xl md:text-2xl font-bold text-slate-800 leading-tight break-words">
                   {currentQuestion.text}
                 </h3>
 
@@ -120,7 +120,7 @@ const QuizPage = () => {
                     const isCorrect = index === currentQuestion.correctAnswer;
                     const showResult = selectedOption !== null;
 
-                    let buttonClass = "h-auto min-h-[4rem] text-lg justify-between px-6 py-4 rounded-2xl border-2 transition-all duration-200 text-left ";
+                    let buttonClass = "h-auto min-h-[4rem] text-lg justify-between px-6 py-4 rounded-2xl border-2 transition-all duration-200 text-left flex items-center gap-4 ";
                     if (!showResult) {
                       buttonClass += "border-slate-100 hover:border-indigo-200 hover:bg-indigo-50 text-slate-700";
                     } else if (isCorrect) {
@@ -139,14 +139,16 @@ const QuizPage = () => {
                         onClick={() => handleOptionSelect(index)}
                         disabled={showResult || isSubmitting}
                       >
-                        <span className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
                           <span className="flex-shrink-0 w-8 h-8 rounded-full bg-white border-2 border-current flex items-center justify-center text-sm font-bold">
                             {String.fromCharCode(65 + index)}
                           </span>
-                          <span className="leading-snug">{option}</span>
-                        </span>
-                        {showResult && isCorrect && <CheckCircle2 className="text-emerald-500 flex-shrink-0" />}
-                        {showResult && isSelected && !isCorrect && <XCircle className="text-rose-500 flex-shrink-0" />}
+                          <span className="leading-snug break-words flex-1">{option}</span>
+                        </div>
+                        <div className="flex-shrink-0">
+                          {showResult && isCorrect && <CheckCircle2 className="text-emerald-500" />}
+                          {showResult && isSelected && !isCorrect && <XCircle className="text-rose-500" />}
+                        </div>
                       </Button>
                     );
                   })}
