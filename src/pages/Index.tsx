@@ -36,12 +36,12 @@ const Index = () => {
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-6">
             <img 
-              src="/logo.png" 
+              src="https://diyickpovftuaplqaztu.supabase.co/storage/v1/object/public/assets/logo.png" 
               alt="Code Regiment Logo" 
-              className="w-32 h-auto drop-shadow-sm"
+              className="w-48 h-auto drop-shadow-md"
               onError={(e) => {
-                // Fallback if image is not found in public folder yet
-                e.currentTarget.style.display = 'none';
+                // Fallback to a styled placeholder if the image fails to load
+                e.currentTarget.src = "https://placeholder.svg";
               }}
             />
           </div>
