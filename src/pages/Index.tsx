@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Shield, Trophy, Play } from 'lucide-react';
+import { Shield, Trophy, Play, Home, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,12 +11,16 @@ import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
   const [name, setName] = useState('');
+  const [houseName, setHouseName] = useState('');
+  const [houseId, setHouseId] = useState('');
   const navigate = useNavigate();
 
   const handleStart = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim()) {
+    if (name.trim() && houseName.trim() && houseId.trim()) {
       localStorage.setItem('quiz_user', name.trim());
+      localStorage.setItem('quiz_house_name', houseName.trim());
+      localStorage.setItem('quiz_house_id', houseId.trim());
       navigate('/quiz');
     }
   };
@@ -41,21 +45,43 @@ const Index = () => {
           <CardHeader>
             <CardTitle className="text-2xl text-center">Enlist for the Quiz</CardTitle>
             <CardDescription className="text-center">
-              Enter your name to begin the 20-question challenge.
+              All fields are mandatory to begin the mission.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleStart} className="space-y-4">
-              <div className="space-y-2">
-                <Input
-                  placeholder="Enter your full name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-12 text-lg border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-xl"
-                  required
-                />
+              <div className="space-y-4">
+                <div className="relative">
+                  <Input
+                    placeholder="Full Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-12 text-lg border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-xl pl-4"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="relative">
+                    <Input
+                      placeholder="House Name"
+                      value={houseName}
+                      onChange={(e) => setHouseName(e.target.value)}
+                      className="h-12 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-xl"
+                      required
+                    />
+                  </div>
+                  <div className="relative">
+                    <Input
+                      placeholder="House ID"
+                      value={houseId}
+                      onChange={(e) => setHouseId(e.target.value)}
+                      className="h-12 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-xl"
+                      required
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 pt-2">
                 <Button 
                   type="submit" 
                   className="h-12 bg-indigo-900 hover:bg-indigo-800 text-white rounded-xl font-semibold text-lg group"

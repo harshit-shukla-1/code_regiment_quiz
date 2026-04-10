@@ -3,13 +3,15 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trophy, Timer, ArrowLeft, Medal, User, Loader2 } from 'lucide-react';
+import { Trophy, Timer, ArrowLeft, Medal, User, Loader2, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 
 interface LeaderboardEntry {
   name: string;
+  house_name: string;
+  house_id: string;
   score: number;
   time_taken: number;
   created_at: string;
@@ -50,7 +52,7 @@ const LeaderboardPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 p-4 md:p-8">
-      <div className="max-w-3xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <Button 
             variant="ghost" 
@@ -94,6 +96,9 @@ const LeaderboardPage = () => {
                   <div className="mt-2 space-y-1">
                     <p className="text-sm font-bold opacity-80 uppercase tracking-wider">Rank #{index + 1}</p>
                     <h3 className="text-xl font-black truncate px-2">{result.name}</h3>
+                    <p className="text-xs font-bold opacity-70 flex items-center justify-center gap-1">
+                      <Home size={12} /> {result.house_name} ({result.house_id})
+                    </p>
                     <div className="flex items-center justify-center gap-4 mt-4">
                       <div>
                         <p className="text-xs uppercase tracking-widest opacity-70 font-bold">Score</p>
@@ -124,6 +129,7 @@ const LeaderboardPage = () => {
                       <tr className="text-left text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-50/50">
                         <th className="px-6 py-4">Rank</th>
                         <th className="px-6 py-4">Operative</th>
+                        <th className="px-6 py-4">House</th>
                         <th className="px-6 py-4">Score</th>
                         <th className="px-6 py-4">Time</th>
                         <th className="px-6 py-4">Date</th>
@@ -135,6 +141,10 @@ const LeaderboardPage = () => {
                           <tr key={index} className="hover:bg-indigo-50/30 transition-colors">
                             <td className="px-6 py-4 font-black text-slate-300">#{index + 1}</td>
                             <td className="px-6 py-4 font-bold text-slate-900">{result.name}</td>
+                            <td className="px-6 py-4">
+                              <div className="text-sm font-bold text-slate-700">{result.house_name}</div>
+                              <div className="text-xs text-slate-400">ID: {result.house_id}</div>
+                            </td>
                             <td className="px-6 py-4">
                               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-indigo-100 text-indigo-900">
                                 {result.score} / 20
@@ -151,7 +161,7 @@ const LeaderboardPage = () => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-medium">
+                          <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-medium">
                             No records found. Be the first to complete the mission!
                           </td>
                         </tr>

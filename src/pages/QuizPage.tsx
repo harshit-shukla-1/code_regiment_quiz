@@ -21,13 +21,16 @@ const QuizPage = () => {
   const navigate = useNavigate();
   
   const userName = localStorage.getItem('quiz_user');
+  const houseName = localStorage.getItem('quiz_house_name');
+  const houseId = localStorage.getItem('quiz_house_id');
+  
   const currentQuestion = defaultQuestions[currentQuestionIndex];
 
   useEffect(() => {
-    if (!userName) {
+    if (!userName || !houseName || !houseId) {
       navigate('/');
     }
-  }, [userName, navigate]);
+  }, [userName, houseName, houseId, navigate]);
 
   const handleOptionSelect = (index: number) => {
     if (selectedOption !== null || isSubmitting) return;
@@ -61,6 +64,8 @@ const QuizPage = () => {
         .insert([
           { 
             name: userName || 'Anonymous', 
+            house_name: houseName || 'Unknown',
+            house_id: houseId || 'Unknown',
             score: finalScore, 
             time_taken: timeTaken 
           }
