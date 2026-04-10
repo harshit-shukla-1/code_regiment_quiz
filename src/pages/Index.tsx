@@ -37,10 +37,10 @@ const Index = () => {
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-6">
             <motion.div 
-              whileHover={{ rotate: 0, scale: 1.05 }}
-              className="w-24 h-24 bg-indigo-900 rounded-3xl flex items-center justify-center shadow-xl shadow-indigo-200 transform -rotate-6 transition-all duration-300 overflow-hidden"
+              whileHover={{ scale: 1.05 }}
+              className="w-32 h-32 bg-white rounded-3xl flex items-center justify-center shadow-xl shadow-indigo-100 transition-all duration-300 overflow-hidden p-4"
             >
-              <img src="/logo.svg" alt="Code Regiment Logo" className="w-16 h-16" />
+              <img src="/logo.png" alt="Code Regiment Logo" className="w-full h-full object-contain" />
             </motion.div>
           </div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 uppercase">Code Regiment</h1>
