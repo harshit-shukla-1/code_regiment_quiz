@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trophy, Play, ShieldCheck, Zap } from 'lucide-react';
+import { Trophy, Play, ShieldCheck, Zap, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -43,8 +43,14 @@ const Index = () => {
               <img src="/logo.png" alt="Code Regiment Logo" className="w-full h-full object-contain" />
             </motion.div>
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 uppercase">Code Regiment</h1>
-          <p className="text-slate-600 font-medium">Robotics Workshop Assessment</p>
+          <div className="space-y-1">
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Code Regiment</h1>
+            <div className="flex items-center justify-center gap-2 text-indigo-600 font-bold">
+              <GraduationCap size={18} />
+              <span>Birla Public School</span>
+            </div>
+            <p className="text-slate-500 font-medium text-sm">Robotics Workshop Assessment</p>
+          </div>
         </div>
 
         <Card className="border-none shadow-2xl bg-white/80 backdrop-blur-sm rounded-3xl overflow-hidden">
