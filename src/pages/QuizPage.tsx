@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, XCircle, ChevronLeft, ChevronRight, Send, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Send, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import QuizTimer from '@/components/QuizTimer';
@@ -27,16 +27,17 @@ const QuizPage = () => {
   const currentQuestion = defaultQuestions[currentQuestionIndex];
   const selectedOption = userAnswers[currentQuestionIndex];
 
-  const currentScore = userAnswers.reduce((acc, answer, index) => {
-    return answer === defaultQuestions[index].correctAnswer ? acc + 1 : acc;
-  }, 0);
+  const calculateScore = () => {
+    return userAnswers.reduce((acc, answer, index) => {
+      return answer === defaultQuestions[index].correctAnswer ? acc + 1 : acc;
+    }, 0);
+  };
 
   useEffect(() => {
     if (!userName || !houseName || !houseId || !isInProgress) {
       navigate('/');
     }
 
-    // Browser exit warning
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!isFinished && !isSubmitting) {
         e.preventDefault();
@@ -50,7 +51,7 @@ const QuizPage = () => {
   }, [userName, houseName, houseId, isInProgress, isFinished, isSubmitting, navigate]);
 
   const handleOptionSelect = (index: number) => {
-    if (selectedOption !== null || isSubmitting) return;
+    if (isSubmitting) return;
     
     const newAnswers = [...userAnswers];
     newAnswers[currentQuestionIndex] = index;
@@ -61,7 +62,7 @@ const QuizPage = () => {
       if (currentQuestionIndex < defaultQuestions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
       }
-    }, 600);
+    }, 400);
   };
 
   const handlePrevious = () => {
@@ -88,6 +89,7 @@ const QuizPage = () => {
     setIsSubmitting(true);
     
     const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+    const finalScore = calculateScore();
 
     try {
       const { error } = await supabase
@@ -97,7 +99,7 @@ const QuizPage = () => {
             name: userName || 'Anonymous', 
             house_name: houseName || 'Unknown',
             house_id: houseId || 'Unknown',
-            score: currentScore, 
+            score: finalScore, 
             time_taken: timeTaken 
           }
         ]);
@@ -106,7 +108,7 @@ const QuizPage = () => {
       
       setIsFinished(true);
       localStorage.removeItem('quiz_in_progress');
-      showSuccess('Mission accomplished! Score submitted.');
+      showSuccess(`Mission accomplished! You scored ${finalScore}/${defaultQuestions.length}.`);
       navigate('/leaderboard');
     } catch (error: any) {
       console.error('Error saving result:', error);
@@ -128,8 +130,8 @@ const QuizPage = () => {
             </h2>
           </div>
           <div className="text-right space-y-0.5">
-            <p className="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">Score</p>
-            <h2 className="text-xl md:text-2xl font-bold text-slate-900">{currentScore}</h2>
+            <p className="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">Status</p>
+            <h2 className="text-sm md:text-base font-bold text-indigo-600">In Progress</h2>
           </div>
         </div>
 
@@ -153,18 +155,13 @@ const QuizPage = () => {
                 <div className="grid gap-3 md:gap-4">
                   {currentQuestion.options.map((option, index) => {
                     const isSelected = selectedOption === index;
-                    const isCorrect = index === currentQuestion.correctAnswer;
-                    const showResult = selectedOption !== null;
 
                     let buttonClass = "h-auto min-h-[3.5rem] md:min-h-[4rem] text-base md:text-lg justify-between px-4 md:px-6 py-3 md:py-4 rounded-2xl border-2 transition-all duration-200 text-left flex items-center gap-3 md:gap-4 w-full whitespace-normal ";
-                    if (!showResult) {
-                      buttonClass += "border-slate-100 hover:border-indigo-200 hover:bg-indigo-50 text-slate-700";
-                    } else if (isCorrect) {
-                      buttonClass += "border-emerald-500 bg-emerald-50 text-emerald-700";
-                    } else if (isSelected && !isCorrect) {
-                      buttonClass += "border-rose-500 bg-rose-50 text-rose-700";
+                    
+                    if (isSelected) {
+                      buttonClass += "border-indigo-600 bg-indigo-50 text-indigo-900 shadow-sm";
                     } else {
-                      buttonClass += "border-slate-50 text-slate-400 opacity-50";
+                      buttonClass += "border-slate-100 hover:border-indigo-200 hover:bg-indigo-50 text-slate-700";
                     }
 
                     return (
@@ -173,17 +170,15 @@ const QuizPage = () => {
                         variant="ghost"
                         className={buttonClass}
                         onClick={() => handleOptionSelect(index)}
-                        disabled={showResult || isSubmitting}
+                        disabled={isSubmitting}
                       >
                         <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-                          <span className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-full bg-white border-2 border-current flex items-center justify-center text-xs md:text-sm font-bold">
+                          <span className={`flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-full border-2 flex items-center justify-center text-xs md:text-sm font-bold transition-colors ${
+                            isSelected ? "bg-indigo-600 border-indigo-600 text-white" : "bg-white border-slate-200 text-slate-400"
+                          }`}>
                             {String.fromCharCode(65 + index)}
                           </span>
                           <span className="leading-snug break-words flex-1 whitespace-normal">{option}</span>
-                        </div>
-                        <div className="flex-shrink-0">
-                          {showResult && isCorrect && <CheckCircle2 className="text-emerald-500 w-5 h-5 md:w-6 md:h-6" />}
-                          {showResult && isSelected && !isCorrect && <XCircle className="text-rose-500 w-5 h-5 md:w-6 md:h-6" />}
                         </div>
                       </Button>
                     );
