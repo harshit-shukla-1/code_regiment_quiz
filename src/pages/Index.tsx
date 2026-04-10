@@ -7,7 +7,6 @@ import { Trophy, Play, Cpu, ShieldCheck, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
   const [name, setName] = useState('');
@@ -18,9 +17,12 @@ const Index = () => {
   const handleStart = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim() && houseName.trim() && houseId.trim()) {
+      // Clear any previous session data
+      localStorage.removeItem('quiz_in_progress');
       localStorage.setItem('quiz_user', name.trim());
       localStorage.setItem('quiz_house_name', houseName.trim());
       localStorage.setItem('quiz_house_id', houseId.trim());
+      localStorage.setItem('quiz_in_progress', 'true');
       navigate('/quiz');
     }
   };
@@ -124,7 +126,6 @@ const Index = () => {
           </div>
         </div>
       </motion.div>
-      <MadeWithDyad />
     </div>
   );
 };

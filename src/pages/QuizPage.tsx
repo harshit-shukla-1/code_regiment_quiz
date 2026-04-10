@@ -22,6 +22,7 @@ const QuizPage = () => {
   const userName = localStorage.getItem('quiz_user');
   const houseName = localStorage.getItem('quiz_house_name');
   const houseId = localStorage.getItem('quiz_house_id');
+  const isInProgress = localStorage.getItem('quiz_in_progress') === 'true';
   
   const currentQuestion = defaultQuestions[currentQuestionIndex];
   const selectedOption = userAnswers[currentQuestionIndex];
@@ -31,10 +32,22 @@ const QuizPage = () => {
   }, 0);
 
   useEffect(() => {
-    if (!userName || !houseName || !houseId) {
+    if (!userName || !houseName || !houseId || !isInProgress) {
       navigate('/');
     }
-  }, [userName, houseName, houseId, navigate]);
+
+    // Browser exit warning
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!isFinished && !isSubmitting) {
+        e.preventDefault();
+        e.returnValue = 'You are exiting and your progress will be lost. Are you sure?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [userName, houseName, houseId, isInProgress, isFinished, isSubmitting, navigate]);
 
   const handleOptionSelect = (index: number) => {
     if (selectedOption !== null || isSubmitting) return;
@@ -92,6 +105,7 @@ const QuizPage = () => {
       if (error) throw error;
       
       setIsFinished(true);
+      localStorage.removeItem('quiz_in_progress');
       showSuccess('Mission accomplished! Score submitted.');
       navigate('/leaderboard');
     } catch (error: any) {
@@ -229,7 +243,8 @@ const QuizPage = () => {
               size="sm"
               className="text-slate-400 hover:text-rose-600 text-xs md:text-sm"
               onClick={() => {
-                if (window.confirm('Are you sure you want to quit? Your progress will be lost.')) {
+                if (window.confirm('You are exiting and your progress will be lost. Are you sure?')) {
+                  localStorage.removeItem('quiz_in_progress');
                   navigate('/');
                 }
               }}
