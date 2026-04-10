@@ -51,7 +51,7 @@ const QuizPage = () => {
   }, [userName, houseName, houseId, isInProgress, isFinished, isSubmitting, navigate]);
 
   const handleOptionSelect = (index: number) => {
-    if (isSubmitting) return;
+    if (isSubmitting || isFinished) return;
     
     const newAnswers = [...userAnswers];
     newAnswers[currentQuestionIndex] = index;
@@ -78,10 +78,10 @@ const QuizPage = () => {
   };
 
   const finishQuiz = async () => {
-    if (isSubmitting) return;
+    if (isSubmitting || isFinished) return;
     
     const unansweredCount = userAnswers.filter(a => a === null).length;
-    if (unansweredCount > 0 && !isFinished) {
+    if (unansweredCount > 0) {
       const confirmSubmit = window.confirm(`You have ${unansweredCount} unanswered questions. Are you sure you want to submit?`);
       if (!confirmSubmit) return;
     }
@@ -170,7 +170,7 @@ const QuizPage = () => {
                         variant="ghost"
                         className={buttonClass}
                         onClick={() => handleOptionSelect(index)}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || isFinished}
                       >
                         <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
                           <span className={`flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-full border-2 flex items-center justify-center text-xs md:text-sm font-bold transition-colors ${
@@ -194,7 +194,7 @@ const QuizPage = () => {
             <Button
               variant="outline"
               onClick={handlePrevious}
-              disabled={currentQuestionIndex === 0 || isSubmitting}
+              disabled={currentQuestionIndex === 0 || isSubmitting || isFinished}
               className="flex-1 h-11 md:h-12 rounded-xl border-slate-200 text-slate-600 font-bold text-sm md:text-base"
             >
               <ChevronLeft className="mr-1 md:mr-2" size={18} />
@@ -204,7 +204,7 @@ const QuizPage = () => {
             <Button
               variant="outline"
               onClick={handleNext}
-              disabled={currentQuestionIndex === defaultQuestions.length - 1 || isSubmitting}
+              disabled={currentQuestionIndex === defaultQuestions.length - 1 || isSubmitting || isFinished}
               className="flex-1 h-11 md:h-12 rounded-xl border-slate-200 text-slate-600 font-bold text-sm md:text-base"
             >
               Next
@@ -214,7 +214,7 @@ const QuizPage = () => {
 
           <Button
             onClick={finishQuiz}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isFinished}
             className="w-full h-12 md:h-14 bg-indigo-900 hover:bg-indigo-800 text-white rounded-2xl font-black text-base md:text-lg shadow-lg shadow-indigo-100 uppercase tracking-wider"
           >
             {isSubmitting ? (
