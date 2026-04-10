@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trophy, Play, Cpu, ShieldCheck, Zap } from 'lucide-react';
+import { Trophy, Play, ShieldCheck, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,7 +17,6 @@ const Index = () => {
   const handleStart = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim() && houseName.trim() && houseId.trim()) {
-      // Clear any previous session data
       localStorage.removeItem('quiz_in_progress');
       localStorage.setItem('quiz_user', name.trim());
       localStorage.setItem('quiz_house_name', houseName.trim());
@@ -37,9 +36,12 @@ const Index = () => {
       >
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-6">
-            <div className="w-24 h-24 bg-indigo-900 rounded-3xl flex items-center justify-center shadow-xl shadow-indigo-200 transform -rotate-6 hover:rotate-0 transition-transform duration-300">
-              <Cpu size={48} className="text-white" />
-            </div>
+            <motion.div 
+              whileHover={{ rotate: 0, scale: 1.05 }}
+              className="w-24 h-24 bg-indigo-900 rounded-3xl flex items-center justify-center shadow-xl shadow-indigo-200 transform -rotate-6 transition-all duration-300 overflow-hidden"
+            >
+              <img src="/logo.svg" alt="Code Regiment Logo" className="w-16 h-16" />
+            </motion.div>
           </div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 uppercase">Code Regiment</h1>
           <p className="text-slate-600 font-medium">Robotics Workshop Assessment</p>
