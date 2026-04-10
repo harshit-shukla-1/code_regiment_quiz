@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trophy, Play } from 'lucide-react';
+import { Trophy, Play, Cpu, ShieldCheck, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -35,21 +35,16 @@ const Index = () => {
       >
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-6">
-            <img 
-              src="https://diyickpovftuaplqaztu.supabase.co/storage/v1/object/public/assets/logo.png" 
-              alt="Code Regiment Logo" 
-              className="w-48 h-auto drop-shadow-md"
-              onError={(e) => {
-                // Fallback to a styled placeholder if the image fails to load
-                e.currentTarget.src = "https://placeholder.svg";
-              }}
-            />
+            <div className="w-24 h-24 bg-indigo-900 rounded-3xl flex items-center justify-center shadow-xl shadow-indigo-200 transform -rotate-6 hover:rotate-0 transition-transform duration-300">
+              <Cpu size={48} className="text-white" />
+            </div>
           </div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 uppercase">Code Regiment</h1>
           <p className="text-slate-600 font-medium">Robotics Workshop Assessment</p>
         </div>
 
-        <Card className="border-none shadow-2xl bg-white/80 backdrop-blur-sm rounded-3xl">
+        <Card className="border-none shadow-2xl bg-white/80 backdrop-blur-sm rounded-3xl overflow-hidden">
+          <div className="h-2 bg-indigo-900 w-full" />
           <CardHeader>
             <CardTitle className="text-2xl text-center">Enlist for the Quiz</CardTitle>
             <CardDescription className="text-center">
@@ -112,17 +107,20 @@ const Index = () => {
         </Card>
 
         <div className="mt-12 grid grid-cols-3 gap-4 text-center">
-          <div className="p-4 rounded-2xl bg-white shadow-sm border border-slate-100">
+          <div className="p-4 rounded-2xl bg-white shadow-sm border border-slate-100 flex flex-col items-center gap-1">
+            <ShieldCheck size={20} className="text-indigo-900" />
             <div className="text-indigo-900 font-bold text-xl">20</div>
-            <div className="text-xs text-slate-500 uppercase tracking-wider font-bold">Questions</div>
+            <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Questions</div>
           </div>
-          <div className="p-4 rounded-2xl bg-white shadow-sm border border-slate-100">
+          <div className="p-4 rounded-2xl bg-white shadow-sm border border-slate-100 flex flex-col items-center gap-1">
+            <Zap size={20} className="text-indigo-900" />
             <div className="text-indigo-900 font-bold text-xl">5m</div>
-            <div className="text-xs text-slate-500 uppercase tracking-wider font-bold">Timer</div>
+            <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Timer</div>
           </div>
-          <div className="p-4 rounded-2xl bg-white shadow-sm border border-slate-100">
+          <div className="p-4 rounded-2xl bg-white shadow-sm border border-slate-100 flex flex-col items-center gap-1">
+            <Trophy size={20} className="text-indigo-900" />
             <div className="text-indigo-900 font-bold text-xl">Live</div>
-            <div className="text-xs text-slate-500 uppercase tracking-wider font-bold">Ranking</div>
+            <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Ranking</div>
           </div>
         </div>
       </motion.div>
