@@ -130,9 +130,9 @@ const QuizPage = () => {
             transition={{ duration: 0.2 }}
             className="w-full"
           >
-            <Card className="border-none shadow-xl overflow-hidden rounded-3xl bg-white">
+            <Card className="border-none shadow-xl rounded-3xl bg-white">
               <CardContent className="p-5 md:p-8 space-y-6 md:space-y-8">
-                <h3 className="text-lg md:text-2xl font-bold text-slate-800 leading-tight break-words overflow-hidden">
+                <h3 className="text-lg md:text-2xl font-bold text-slate-800 leading-tight break-words whitespace-normal">
                   {currentQuestion.text}
                 </h3>
 
@@ -142,7 +142,7 @@ const QuizPage = () => {
                     const isCorrect = index === currentQuestion.correctAnswer;
                     const showResult = selectedOption !== null;
 
-                    let buttonClass = "h-auto min-h-[3.5rem] md:min-h-[4rem] text-base md:text-lg justify-between px-4 md:px-6 py-3 md:py-4 rounded-2xl border-2 transition-all duration-200 text-left flex items-center gap-3 md:gap-4 w-full ";
+                    let buttonClass = "h-auto min-h-[3.5rem] md:min-h-[4rem] text-base md:text-lg justify-between px-4 md:px-6 py-3 md:py-4 rounded-2xl border-2 transition-all duration-200 text-left flex items-center gap-3 md:gap-4 w-full whitespace-normal ";
                     if (!showResult) {
                       buttonClass += "border-slate-100 hover:border-indigo-200 hover:bg-indigo-50 text-slate-700";
                     } else if (isCorrect) {
@@ -161,11 +161,11 @@ const QuizPage = () => {
                         onClick={() => handleOptionSelect(index)}
                         disabled={showResult || isSubmitting}
                       >
-                        <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0 overflow-hidden">
+                        <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
                           <span className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-full bg-white border-2 border-current flex items-center justify-center text-xs md:text-sm font-bold">
                             {String.fromCharCode(65 + index)}
                           </span>
-                          <span className="leading-snug break-words flex-1 overflow-hidden">{option}</span>
+                          <span className="leading-snug break-words flex-1 whitespace-normal">{option}</span>
                         </div>
                         <div className="flex-shrink-0">
                           {showResult && isCorrect && <CheckCircle2 className="text-emerald-500 w-5 h-5 md:w-6 md:h-6" />}
