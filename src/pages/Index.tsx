@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Shield, Trophy, Play, Home, Hash } from 'lucide-react';
+import { Trophy, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -34,8 +34,16 @@ const Index = () => {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center p-3 bg-indigo-900 rounded-2xl shadow-lg mb-4">
-            <Shield className="text-white" size={40} />
+          <div className="inline-flex items-center justify-center mb-6">
+            <img 
+              src="/logo.png" 
+              alt="Code Regiment Logo" 
+              className="w-32 h-auto drop-shadow-sm"
+              onError={(e) => {
+                // Fallback if image is not found in public folder yet
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 uppercase">Code Regiment</h1>
           <p className="text-slate-600 font-medium">Robotics Workshop Assessment</p>
