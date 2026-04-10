@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, ChevronLeft, ChevronRight, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import QuizTimer from '@/components/QuizTimer';
@@ -13,8 +13,7 @@ import { showError } from '@/utils/toast';
 
 const QuizPage = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [score, setScore] = useState(0);
+  const [userAnswers, setUserAnswers] = useState<(number | null)[]>(new Array(defaultQuestions.length).fill(null));
   const [startTime] = useState(Date.now());
   const [isFinished, setIsFinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,6 +24,12 @@ const QuizPage = () => {
   const houseId = localStorage.getItem('quiz_house_id');
   
   const currentQuestion = defaultQuestions[currentQuestionIndex];
+  const selectedOption = userAnswers[currentQuestionIndex];
+
+  // Calculate current score based on all answers
+  const currentScore = userAnswers.reduce((acc, answer, index) => {
+    return answer === defaultQuestions[index].correctAnswer ? acc + 1 : acc;
+  }, 0);
 
   useEffect(() => {
     if (!userName || !houseName || !houseId) {
@@ -34,29 +39,45 @@ const QuizPage = () => {
 
   const handleOptionSelect = (index: number) => {
     if (selectedOption !== null || isSubmitting) return;
-    setSelectedOption(index);
     
-    if (index === currentQuestion.correctAnswer) {
-      setScore(prev => prev + 1);
-    }
+    const newAnswers = [...userAnswers];
+    newAnswers[currentQuestionIndex] = index;
+    setUserAnswers(newAnswers);
 
+    // Optional: Auto-advance after a short delay
     setTimeout(() => {
       if (currentQuestionIndex < defaultQuestions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
-        setSelectedOption(null);
-      } else {
-        finishQuiz();
       }
-    }, 1000);
+    }, 800);
+  };
+
+  const handlePrevious = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentQuestionIndex < defaultQuestions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+    }
   };
 
   const finishQuiz = async () => {
     if (isSubmitting) return;
+    
+    const unansweredCount = userAnswers.filter(a => a === null).length;
+    if (unansweredCount > 0 && !isFinished) {
+      if (!confirm(`You have ${unansweredCount} unanswered questions. Are you sure you want to submit?`)) {
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setIsFinished(true);
 
     const timeTaken = Math.floor((Date.now() - startTime) / 1000);
-    const finalScore = score + (selectedOption === currentQuestion.correctAnswer ? 1 : 0);
 
     try {
       const { error } = await supabase
@@ -66,7 +87,7 @@ const QuizPage = () => {
             name: userName || 'Anonymous', 
             house_name: houseName || 'Unknown',
             house_id: houseId || 'Unknown',
-            score: finalScore, 
+            score: currentScore, 
             time_taken: timeTaken 
           }
         ]);
@@ -94,7 +115,7 @@ const QuizPage = () => {
           </div>
           <div className="text-right">
             <p className="text-xs font-bold text-indigo-900 uppercase tracking-widest">Score</p>
-            <h2 className="text-2xl font-bold text-slate-900">{score}</h2>
+            <h2 className="text-2xl font-bold text-slate-900">{currentScore}</h2>
           </div>
         </div>
 
@@ -158,18 +179,51 @@ const QuizPage = () => {
           </motion.div>
         </AnimatePresence>
 
-        <div className="flex justify-center">
-          <Button 
-            variant="ghost" 
-            className="text-slate-400 hover:text-rose-600"
-            onClick={() => {
-              if (confirm('Are you sure you want to quit? Your progress will be lost.')) {
-                navigate('/');
-              }
-            }}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-4">
+            <Button
+              variant="outline"
+              onClick={handlePrevious}
+              disabled={currentQuestionIndex === 0 || isSubmitting}
+              className="flex-1 h-12 rounded-xl border-slate-200 text-slate-600 font-bold"
+            >
+              <ChevronLeft className="mr-2" size={20} />
+              Previous
+            </Button>
+            
+            <Button
+              variant="outline"
+              onClick={handleNext}
+              disabled={currentQuestionIndex === defaultQuestions.length - 1 || isSubmitting}
+              className="flex-1 h-12 rounded-xl border-slate-200 text-slate-600 font-bold"
+            >
+              Next
+              <ChevronRight className="ml-2" size={20} />
+            </Button>
+          </div>
+
+          <Button
+            onClick={finishQuiz}
+            disabled={isSubmitting}
+            className="w-full h-14 bg-indigo-900 hover:bg-indigo-800 text-white rounded-2xl font-black text-lg shadow-lg shadow-indigo-100 uppercase tracking-wider"
           >
-            Abandon Mission
+            {isSubmitting ? 'Submitting...' : 'Submit Mission'}
+            <Send className="ml-2" size={20} />
           </Button>
+
+          <div className="flex justify-center">
+            <Button 
+              variant="ghost" 
+              className="text-slate-400 hover:text-rose-600"
+              onClick={() => {
+                if (confirm('Are you sure you want to quit? Your progress will be lost.')) {
+                  navigate('/');
+                }
+              }}
+            >
+              Abandon Mission
+            </Button>
+          </div>
         </div>
       </div>
     </div>
