@@ -25,36 +25,61 @@ const AdminDashboard = () => {
   }, []);
 
   const checkAdmin = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return navigate('/admin');
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.error("Auth error:", userError);
+        return navigate('/admin');
+      }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
+      console.log("Checking admin status for user:", user.email);
 
-    if (!profile?.is_admin) {
-      showError("Access Denied: You do not have admin privileges.");
-      await supabase.auth.signOut();
-      navigate('/admin');
-    } else {
-      setIsAdmin(true);
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
+        showError("Could not verify admin status: " + profileError.message);
+        return;
+      }
+
+      if (!profile?.is_admin) {
+        showError("Access Denied: You do not have admin privileges.");
+        await supabase.auth.signOut();
+        navigate('/admin');
+      } else {
+        setIsAdmin(true);
+      }
+    } catch (err: any) {
+      console.error("Unexpected admin check error:", err);
+      showError("An unexpected error occurred during admin check.");
     }
   };
 
   const fetchData = async () => {
-    const { data: qData } = await supabase.from('questions').select('*').order('created_at', { ascending: false });
-    const { data: rData } = await supabase.from('leaderboard').select('*').order('created_at', { ascending: false });
-    setQuestions(qData || []);
-    setResults(rData || []);
+    try {
+      const { data: qData, error: qError } = await supabase.from('questions').select('*').order('created_at', { ascending: false });
+      const { data: rData, error: rError } = await supabase.from('leaderboard').select('*').order('created_at', { ascending: false });
+      
+      if (qError) console.error("Questions fetch error:", qError);
+      if (rError) console.error("Leaderboard fetch error:", rError);
+      
+      setQuestions(qData || []);
+      setResults(rData || []);
+    } catch (err) {
+      console.error("Data fetch error:", err);
+    }
   };
 
   const handleAddQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     const { error } = await supabase.from('questions').insert([newQuestion]);
-    if (error) showError(error.message);
-    else {
+    if (error) {
+      showError(error.message);
+    } else {
       showSuccess("Question added to the pool");
       setNewQuestion({ text: '', options: ['', '', '', ''], correct_answer: 0 });
       fetchData();
@@ -75,7 +100,13 @@ const AdminDashboard = () => {
     else fetchData();
   };
 
-  if (!isAdmin) return null;
+  if (!isAdmin) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="text-center">
+        <p className="text-slate-500 animate-pulse">Verifying Authorization...</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8">
