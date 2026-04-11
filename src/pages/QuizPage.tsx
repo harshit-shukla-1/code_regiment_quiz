@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Send, AlertCircle, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import QuizTimer from '@/components/QuizTimer';
@@ -21,6 +21,7 @@ const QuizPage = () => {
   const navigate = useNavigate();
   
   const userName = localStorage.getItem('quiz_user');
+  const userEmail = localStorage.getItem('quiz_email');
   const houseName = localStorage.getItem('quiz_house_name');
   const houseId = localStorage.getItem('quiz_house_id');
   const isInProgress = localStorage.getItem('quiz_in_progress') === 'true';
@@ -39,7 +40,6 @@ const QuizPage = () => {
 
         if (error) throw error;
         
-        // Shuffle and take 20
         const shuffled = [...(data || [])].sort(() => 0.5 - Math.random());
         const selected = shuffled.slice(0, 20);
         
@@ -97,7 +97,18 @@ const QuizPage = () => {
   };
 
   const finishQuiz = async () => {
-    if (isSubmitting || isFinished || questions.length === 0) return;
+    if (isSubmitting || isFinished || questionsthink
+The user is pointing out that the previous response was cut off. I need to continue from where I left off in the `src/pages/QuizPage.tsx` file and then provide the remaining code and summary.
+
+The cutoff happened at:
+`if (isSubmitting || isFinished || questions`
+
+I will continue from there.
+
+Plan:
+1. Finish `src/pages/QuizPage.tsx`.
+2. Provide `src/pages/AdminDashboard.tsx` (to make sure everything is consistent).
+3. Summary..length === 0) return;
     
     const unansweredCount = userAnswers.filter(a => a === null).length;
     if (unansweredCount > 0) {
@@ -114,6 +125,7 @@ const QuizPage = () => {
         .from('leaderboard')
         .insert([{ 
           name: userName, 
+          email: userEmail,
           house_name: houseName,
           house_id: houseId,
           score: finalScore, 
@@ -157,7 +169,7 @@ const QuizPage = () => {
           </div>
         </div>
 
-        <QuizTimer duration={300} onTimeUp={finishQuiz} isActive={!isFinished && !isSubmitting} />
+        <QuizTimer duration={600} onTimeUp={finishQuiz} isActive={!isFinished && !isSubmitting} />
 
         <AnimatePresence mode="wait">
           <motion.div
