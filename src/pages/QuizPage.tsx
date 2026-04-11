@@ -3,40 +3,63 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Send, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Send, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import QuizTimer from '@/components/QuizTimer';
-import { defaultQuestions } from '@/data/questions';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 
 const QuizPage = () => {
+  const [questions, setQuestions] = useState<any[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [userAnswers, setUserAnswers] = useState<(number | null)[]>(new Array(defaultQuestions.length).fill(null));
+  const [userAnswers, setUserAnswers] = useState<(number | null)[]>([]);
   const [startTime] = useState(Date.now());
   const [isFinished, setIsFinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   
   const userName = localStorage.getItem('quiz_user');
   const houseName = localStorage.getItem('quiz_house_name');
   const houseId = localStorage.getItem('quiz_house_id');
   const isInProgress = localStorage.getItem('quiz_in_progress') === 'true';
-  
-  const currentQuestion = defaultQuestions[currentQuestionIndex];
-  const selectedOption = userAnswers[currentQuestionIndex];
-
-  const calculateScore = () => {
-    return userAnswers.reduce((acc, answer, index) => {
-      return answer === defaultQuestions[index].correctAnswer ? acc + 1 : acc;
-    }, 0);
-  };
 
   useEffect(() => {
     if (!userName || !houseName || !houseId || !isInProgress) {
       navigate('/');
+      return;
     }
+
+    const fetchQuestions = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('questions')
+          .select('*');
+
+        if (error) throw error;
+        
+        // Shuffle and take 20
+        const shuffled = [...(data || [])].sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, 20);
+        
+        if (selected.length === 0) {
+          showError("Mission intel missing. Contact admin.");
+          navigate('/');
+          return;
+        }
+
+        setQuestions(selected);
+        setUserAnswers(new Array(selected.length).fill(null));
+      } catch (err: any) {
+        showError("Communication lost: " + err.message);
+        navigate('/');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchQuestions();
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!isFinished && !isSubmitting) {
@@ -50,6 +73,15 @@ const QuizPage = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [userName, houseName, houseId, isInProgress, isFinished, isSubmitting, navigate]);
 
+  const currentQuestion = questions[currentQuestionIndex];
+  const selectedOption = userAnswers[currentQuestionIndex];
+
+  const calculateScore = () => {
+    return userAnswers.reduce((acc, answer, index) => {
+      return answer === questions[index].correct_answer ? acc + 1 : acc;
+    }, 0);
+  };
+
   const handleOptionSelect = (index: number) => {
     if (isSubmitting || isFinished) return;
     
@@ -57,28 +89,15 @@ const QuizPage = () => {
     newAnswers[currentQuestionIndex] = index;
     setUserAnswers(newAnswers);
 
-    // Auto-advance after a short delay
     setTimeout(() => {
-      if (currentQuestionIndex < defaultQuestions.length - 1) {
+      if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
       }
     }, 400);
   };
 
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
-    }
-  };
-
-  const handleNext = () => {
-    if (currentQuestionIndex < defaultQuestions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-    }
-  };
-
   const finishQuiz = async () => {
-    if (isSubmitting || isFinished) return;
+    if (isSubmitting || isFinished || questions.length === 0) return;
     
     const unansweredCount = userAnswers.filter(a => a === null).length;
     if (unansweredCount > 0) {
@@ -87,35 +106,38 @@ const QuizPage = () => {
     }
 
     setIsSubmitting(true);
-    
     const timeTaken = Math.floor((Date.now() - startTime) / 1000);
     const finalScore = calculateScore();
 
     try {
       const { error } = await supabase
         .from('leaderboard')
-        .insert([
-          { 
-            name: userName || 'Anonymous', 
-            house_name: houseName || 'Unknown',
-            house_id: houseId || 'Unknown',
-            score: finalScore, 
-            time_taken: timeTaken 
-          }
-        ]);
+        .insert([{ 
+          name: userName, 
+          house_name: houseName,
+          house_id: houseId,
+          score: finalScore, 
+          time_taken: timeTaken 
+        }]);
 
       if (error) throw error;
       
       setIsFinished(true);
       localStorage.removeItem('quiz_in_progress');
-      showSuccess(`Mission accomplished! You scored ${finalScore}/${defaultQuestions.length}.`);
+      showSuccess(`Mission accomplished! Score: ${finalScore}/${questions.length}`);
       navigate('/leaderboard');
     } catch (error: any) {
-      console.error('Error saving result:', error);
-      showError(error.message || 'Failed to save your score. Please try again.');
+      showError('Sync failed: ' + error.message);
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-50">
+      <Loader2 className="animate-spin text-indigo-900" size={40} />
+      <p className="font-bold text-slate-500 uppercase tracking-widest">Loading Intel...</p>
+    </div>
+  );
 
   if (!currentQuestion) return null;
 
@@ -126,7 +148,7 @@ const QuizPage = () => {
           <div className="space-y-0.5">
             <p className="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">Question</p>
             <h2 className="text-xl md:text-2xl font-bold text-slate-900">
-              {currentQuestionIndex + 1} <span className="text-slate-400 text-base md:text-lg">/ {defaultQuestions.length}</span>
+              {currentQuestionIndex + 1} <span className="text-slate-400 text-base md:text-lg">/ {questions.length}</span>
             </h2>
           </div>
           <div className="text-right space-y-0.5">
@@ -143,43 +165,33 @@ const QuizPage = () => {
             initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -10 }}
-            transition={{ duration: 0.2 }}
             className="w-full"
           >
             <Card className="border-none shadow-xl rounded-3xl bg-white">
               <CardContent className="p-5 md:p-8 space-y-6 md:space-y-8">
-                <h3 className="text-lg md:text-2xl font-bold text-slate-800 leading-tight break-words whitespace-normal">
+                <h3 className="text-lg md:text-2xl font-bold text-slate-800 leading-tight">
                   {currentQuestion.text}
                 </h3>
 
                 <div className="grid gap-3 md:gap-4">
-                  {currentQuestion.options.map((option, index) => {
+                  {currentQuestion.options.map((option: string, index: number) => {
                     const isSelected = selectedOption === index;
-
-                    let buttonClass = "h-auto min-h-[3.5rem] md:min-h-[4rem] text-base md:text-lg justify-between px-4 md:px-6 py-3 md:py-4 rounded-2xl border-2 transition-all duration-200 text-left flex items-center gap-3 md:gap-4 w-full whitespace-normal ";
-                    
-                    if (isSelected) {
-                      buttonClass += "border-indigo-600 bg-indigo-50 text-indigo-900 shadow-sm";
-                    } else {
-                      buttonClass += "border-slate-100 hover:border-indigo-200 hover:bg-indigo-50 text-slate-700";
-                    }
-
                     return (
                       <Button
                         key={index}
                         variant="ghost"
-                        className={buttonClass}
+                        className={`h-auto min-h-[3.5rem] text-base md:text-lg justify-start px-4 py-3 rounded-2xl border-2 transition-all text-left flex items-center gap-3 w-full ${
+                          isSelected ? "border-indigo-600 bg-indigo-50 text-indigo-900" : "border-slate-100 hover:border-indigo-200 text-slate-700"
+                        }`}
                         onClick={() => handleOptionSelect(index)}
-                        disabled={isSubmitting || isFinished}
+                        disabled={isSubmitting}
                       >
-                        <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-                          <span className={`flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-full border-2 flex items-center justify-center text-xs md:text-sm font-bold transition-colors ${
-                            isSelected ? "bg-indigo-600 border-indigo-600 text-white" : "bg-white border-slate-200 text-slate-400"
-                          }`}>
-                            {String.fromCharCode(65 + index)}
-                          </span>
-                          <span className="leading-snug break-words flex-1 whitespace-normal">{option}</span>
-                        </div>
+                        <span className={`shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-bold ${
+                          isSelected ? "bg-indigo-600 border-indigo-600 text-white" : "border-slate-200 text-slate-400"
+                        }`}>
+                          {String.fromCharCode(65 + index)}
+                        </span>
+                        <span className="flex-1 whitespace-normal">{option}</span>
                       </Button>
                     );
                   })}
@@ -189,65 +201,41 @@ const QuizPage = () => {
           </motion.div>
         </AnimatePresence>
 
-        <div className="flex flex-col gap-3 md:gap-4">
-          <div className="flex items-center justify-between gap-3 md:gap-4">
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-3">
             <Button
               variant="outline"
-              onClick={handlePrevious}
-              disabled={currentQuestionIndex === 0 || isSubmitting || isFinished}
-              className="flex-1 h-11 md:h-12 rounded-xl border-slate-200 text-slate-600 font-bold text-sm md:text-base"
+              onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
+              disabled={currentQuestionIndex === 0 || isSubmitting}
+              className="flex-1 h-12 rounded-xl"
             >
-              <ChevronLeft className="mr-1 md:mr-2" size={18} />
               Previous
             </Button>
-            
             <Button
               variant="outline"
-              onClick={handleNext}
-              disabled={currentQuestionIndex === defaultQuestions.length - 1 || isSubmitting || isFinished}
-              className="flex-1 h-11 md:h-12 rounded-xl border-slate-200 text-slate-600 font-bold text-sm md:text-base"
+              onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
+              disabled={currentQuestionIndex === questions.length - 1 || isSubmitting}
+              className="flex-1 h-12 rounded-xl"
             >
               Next
-              <ChevronRight className="ml-1 md:ml-2" size={18} />
             </Button>
           </div>
 
           <Button
             onClick={finishQuiz}
-            disabled={isSubmitting || isFinished}
-            className="w-full h-12 md:h-14 bg-indigo-900 hover:bg-indigo-800 text-white rounded-2xl font-black text-base md:text-lg shadow-lg shadow-indigo-100 uppercase tracking-wider"
+            disabled={isSubmitting}
+            className="w-full h-14 bg-indigo-900 hover:bg-indigo-800 text-white rounded-2xl font-black text-lg shadow-lg"
           >
-            {isSubmitting ? (
-              <span className="flex items-center gap-2">
-                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
-                  <Send size={18} />
-                </motion.div>
-                Transmitting...
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                Submit Mission
-                <Send size={18} />
-              </span>
-            )}
+            {isSubmitting ? "Syncing..." : "Submit Mission"}
           </Button>
 
-          <div className="flex justify-center">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="text-slate-400 hover:text-rose-600 text-xs md:text-sm"
-              onClick={() => {
-                if (window.confirm('You are exiting and your progress will be lost. Are you sure?')) {
-                  localStorage.removeItem('quiz_in_progress');
-                  navigate('/');
-                }
-              }}
-            >
-              <AlertCircle className="mr-1" size={14} />
-              Abandon Mission
-            </Button>
-          </div>
+          <Button 
+            variant="ghost" 
+            className="text-slate-400 text-xs"
+            onClick={() => window.confirm('Abandon Mission?') && (localStorage.removeItem('quiz_in_progress'), navigate('/'))}
+          >
+            Abandon Mission
+          </Button>
         </div>
       </div>
     </div>

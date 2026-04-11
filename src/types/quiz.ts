@@ -1,13 +1,16 @@
 export interface Question {
-  id: number;
+  id: string;
   text: string;
   options: string[];
-  correctAnswer: number;
+  correct_answer: number;
 }
 
 export interface QuizResult {
+  id: string;
   name: string;
+  house_name: string;
+  house_id: string;
   score: number;
-  timeTaken: number;
-  date: string;
+  time_taken: number;
+  created_at: string;
 }
