@@ -8,7 +8,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ShieldCheck, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { showError } from '@/utils/toast';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -59,7 +58,7 @@ const AdminLogin = () => {
           <div className="mx-auto w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-4">
             <ShieldCheck className="text-indigo-900" size={24} />
           </div>
-          <CardTitle className="text-2xl font-black uppercase tracking-tight">Admin Console</CardTitle>
+          <CardTitle className="text-2xl font-black uppercase tracking-tight text-indigo-900">Admin Console</CardTitle>
           <CardDescription>Authorized personnel only</CardDescription>
         </CardHeader>
         <CardContent>
@@ -78,7 +77,7 @@ const AdminLogin = () => {
             }}
             theme="light"
             providers={[]}
-            showLinks={false}
+            showLinks={true}
           />
         </CardContent>
       </Card>
