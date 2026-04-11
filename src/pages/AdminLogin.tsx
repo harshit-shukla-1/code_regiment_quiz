@@ -6,26 +6,41 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ShieldCheck, ArrowLeft } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { showError } from '@/utils/toast';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
-  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) navigate('/admin/dashboard');
-    });
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate('/admin/dashboard');
+      }
+      setLoading(false);
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) navigate('/admin/dashboard');
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        navigate('/admin/dashboard');
+      }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="animate-spin text-indigo-900" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
@@ -50,10 +65,20 @@ const AdminLogin = () => {
         <CardContent>
           <Auth
             supabaseClient={supabase}
-            appearance={{ theme: ThemeSupa }}
+            appearance={{ 
+              theme: ThemeSupa,
+              variables: {
+                default: {
+                  colors: {
+                    brand: '#312e81',
+                    brandAccent: '#4338ca',
+                  }
+                }
+              }
+            }}
             theme="light"
             providers={[]}
-            redirectTo={window.location.origin + '/admin/dashboard'}
+            showLinks={false}
           />
         </CardContent>
       </Card>
