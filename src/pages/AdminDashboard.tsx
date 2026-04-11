@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, LogOut, LayoutDashboard, Database, Users, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, LogOut, LayoutDashboard, Database, Users, CheckCircle2, Mail } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
 
 const AdminDashboard = () => {
@@ -28,11 +28,8 @@ const AdminDashboard = () => {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
-        console.error("Auth error:", userError);
         return navigate('/admin');
       }
-
-      console.log("Checking admin status for user:", user.email);
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -40,37 +37,26 @@ const AdminDashboard = () => {
         .eq('id', user.id)
         .single();
 
-      if (profileError) {
-        console.error("Profile fetch error:", profileError);
-        showError("Could not verify admin status: " + profileError.message);
-        return;
-      }
-
-      if (!profile?.is_admin) {
+      if (profileError || !profile?.is_admin) {
         showError("Access Denied: You do not have admin privileges.");
         await supabase.auth.signOut();
         navigate('/admin');
       } else {
         setIsAdmin(true);
       }
-    } catch (err: any) {
-      console.error("Unexpected admin check error:", err);
-      showError("An unexpected error occurred during admin check.");
+    } catch (err) {
+      navigate('/admin');
     }
   };
 
   const fetchData = async () => {
     try {
-      const { data: qData, error: qError } = await supabase.from('questions').select('*').order('created_at', { ascending: false });
-      const { data: rData, error: rError } = await supabase.from('leaderboard').select('*').order('created_at', { ascending: false });
-      
-      if (qError) console.error("Questions fetch error:", qError);
-      if (rError) console.error("Leaderboard fetch error:", rError);
-      
+      const { data: qData } = await supabase.from('questions').select('*').order('created_at', { ascending: false });
+      const { data: rData } = await supabase.from('leaderboard').select('*').order('created_at', { ascending: false });
       setQuestions(qData || []);
       setResults(rData || []);
     } catch (err) {
-      console.error("Data fetch error:", err);
+      console.error(err);
     }
   };
 
@@ -220,6 +206,7 @@ const AdminDashboard = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>House</TableHead>
                     <TableHead>Score</TableHead>
                     <TableHead>Date</TableHead>
@@ -230,6 +217,12 @@ const AdminDashboard = () => {
                   {results.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell className="font-bold">{r.name}</TableCell>
+                      <TableCell className="text-slate-500">
+                        <div className="flex items-center gap-1">
+                          <Mail size={14} />
+                          {r.email || "N/A"}
+                        </div>
+                      </TableCell>
                       <TableCell>{r.house_name} ({r.house_id})</TableCell>
                       <TableCell>{r.score}/20</TableCell>
                       <TableCell className="text-slate-500">{new Date(r.created_at).toLocaleDateString()}</TableCell>
