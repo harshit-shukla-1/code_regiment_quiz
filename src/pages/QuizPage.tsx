@@ -93,7 +93,7 @@ const QuizPage = () => {
 
     try {
       const { error } = await supabase
-        .from('quiz_results')
+        .from('leaderboard')
         .insert([
           { 
             name: userName || 'Anonymous', 

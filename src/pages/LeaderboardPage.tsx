@@ -26,7 +26,7 @@ const LeaderboardPage = () => {
     const fetchResults = async () => {
       try {
         const { data, error } = await supabase
-          .from('quiz_results')
+          .from('leaderboard')
           .select('*')
           .order('score', { ascending: false })
           .order('time_taken', { ascending: true })
