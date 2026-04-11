@@ -97,18 +97,7 @@ const QuizPage = () => {
   };
 
   const finishQuiz = async () => {
-    if (isSubmitting || isFinished || questionsthink
-The user is pointing out that the previous response was cut off. I need to continue from where I left off in the `src/pages/QuizPage.tsx` file and then provide the remaining code and summary.
-
-The cutoff happened at:
-`if (isSubmitting || isFinished || questions`
-
-I will continue from there.
-
-Plan:
-1. Finish `src/pages/QuizPage.tsx`.
-2. Provide `src/pages/AdminDashboard.tsx` (to make sure everything is consistent).
-3. Summary..length === 0) return;
+    if (isSubmitting || isFinished || questions.length === 0) return;
     
     const unansweredCount = userAnswers.filter(a => a === null).length;
     if (unansweredCount > 0) {
