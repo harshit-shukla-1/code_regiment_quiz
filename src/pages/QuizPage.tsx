@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import QuizTimer from '@/components/QuizTimer';
@@ -19,13 +19,59 @@ const QuizPage = () => {
   const [isFinished, setIsFinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [violations, setViolations] = useState(0);
   const navigate = useNavigate();
   
+  const violationRef = useRef(0);
+  const isSubmittingRef = useRef(false);
+
   const userName = localStorage.getItem('quiz_user') || '';
   const userEmail = localStorage.getItem('quiz_email') || '';
   const houseName = localStorage.getItem('quiz_house_name') || '';
   const houseId = localStorage.getItem('quiz_house_id') || '';
   const isInProgress = localStorage.getItem('quiz_in_progress') === 'true';
+
+  const finishQuiz = useCallback(async (reason: string = "manual") => {
+    if (isSubmittingRef.current || isFinished || questions.length === 0) return;
+    
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+    
+    const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+    const finalScore = userAnswers.reduce((acc, answer, index) => {
+      return answer === questions[index].correct_answer ? acc + 1 : acc;
+    }, 0);
+
+    try {
+      const { error } = await supabase
+        .from('leaderboard')
+        .insert([{ 
+          name: userName, 
+          email: userEmail,
+          house_name: houseName,
+          house_id: houseId,
+          score: finalScore, 
+          time_taken: timeTaken 
+        }]);
+
+      if (error) throw error;
+      
+      setIsFinished(true);
+      localStorage.removeItem('quiz_in_progress');
+      
+      if (reason === "violation") {
+        showError("Mission terminated: Multiple window switches detected. Results submitted.");
+      } else {
+        showSuccess(`Mission accomplished! Score: ${finalScore}/${questions.length}`);
+      }
+      
+      navigate('/leaderboard');
+    } catch (error: any) {
+      showError('Sync failed: ' + error.message);
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
+    }
+  }, [userName, userEmail, houseName, houseId, isFinished, questions, startTime, userAnswers, navigate]);
 
   useEffect(() => {
     if (!userName || !houseName || !houseId || !isInProgress) {
@@ -62,26 +108,38 @@ const QuizPage = () => {
 
     fetchQuestions();
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && !isSubmittingRef.current && !isFinished) {
+        violationRef.current += 1;
+        setViolations(violationRef.current);
+        
+        if (violationRef.current === 1) {
+          showError("WARNING: Do not leave the test window! Next attempt will auto-submit your mission.");
+        } else if (violationRef.current >= 2) {
+          finishQuiz("violation");
+        }
+      }
+    };
+
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (!isFinished && !isSubmitting) {
+      if (!isFinished && !isSubmittingRef.current) {
         e.preventDefault();
         e.returnValue = 'You are exiting and your progress will be lost. Are you sure?';
         return e.returnValue;
       }
     };
 
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [userName, houseName, houseId, isInProgress, isFinished, isSubmitting, navigate]);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [userName, houseName, houseId, isInProgress, isFinished, navigate, finishQuiz]);
 
   const currentQuestion = questions[currentQuestionIndex];
   const selectedOption = userAnswers[currentQuestionIndex];
-
-  const calculateScore = () => {
-    return userAnswers.reduce((acc, answer, index) => {
-      return answer === questions[index].correct_answer ? acc + 1 : acc;
-    }, 0);
-  };
 
   const handleOptionSelect = (index: number) => {
     if (isSubmitting || isFinished) return;
@@ -97,41 +155,13 @@ const QuizPage = () => {
     }, 400);
   };
 
-  const finishQuiz = async () => {
-    if (isSubmitting || isFinished || questions.length === 0) return;
-    
+  const handleManualSubmit = () => {
     const unansweredCount = userAnswers.filter(a => a === null).length;
     if (unansweredCount > 0) {
       const confirmSubmit = window.confirm(`You have ${unansweredCount} unanswered questions. Are you sure you want to submit?`);
       if (!confirmSubmit) return;
     }
-
-    setIsSubmitting(true);
-    const timeTaken = Math.floor((Date.now() - startTime) / 1000);
-    const finalScore = calculateScore();
-
-    try {
-      const { error } = await supabase
-        .from('leaderboard')
-        .insert([{ 
-          name: userName, 
-          email: userEmail,
-          house_name: houseName,
-          house_id: houseId,
-          score: finalScore, 
-          time_taken: timeTaken 
-        }]);
-
-      if (error) throw error;
-      
-      setIsFinished(true);
-      localStorage.removeItem('quiz_in_progress');
-      showSuccess(`Mission accomplished! Score: ${finalScore}/${questions.length}`);
-      navigate('/leaderboard');
-    } catch (error: any) {
-      showError('Sync failed: ' + error.message);
-      setIsSubmitting(false);
-    }
+    finishQuiz("manual");
   };
 
   if (isLoading) return (
@@ -145,7 +175,6 @@ const QuizPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-3 md:p-6 flex flex-col items-center justify-center overflow-x-hidden">
-      {/* Camera Monitoring */}
       <CameraMonitor userName={userName} email={userEmail} houseId={houseId} />
 
       <div className="w-full max-w-2xl space-y-4 md:space-y-6">
@@ -156,13 +185,21 @@ const QuizPage = () => {
               {currentQuestionIndex + 1} <span className="text-slate-400 text-base md:text-lg">/ {questions.length}</span>
             </h2>
           </div>
+          
+          {violations > 0 && (
+            <div className="flex items-center gap-2 bg-amber-50 px-3 py-1 rounded-full border border-amber-100 animate-pulse">
+              <AlertTriangle className="text-amber-600" size={14} />
+              <span className="text-amber-700 text-[10px] font-black uppercase tracking-tighter">1 Warning Issued</span>
+            </div>
+          )}
+
           <div className="text-right space-y-0.5">
             <p className="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">Status</p>
             <h2 className="text-sm md:text-base font-bold text-indigo-600">In Progress</h2>
           </div>
         </div>
 
-        <QuizTimer duration={600} onTimeUp={finishQuiz} isActive={!isFinished && !isSubmitting} />
+        <QuizTimer duration={600} onTimeUp={() => finishQuiz("timer")} isActive={!isFinished && !isSubmitting} />
 
         <AnimatePresence mode="wait">
           <motion.div
@@ -227,7 +264,7 @@ const QuizPage = () => {
           </div>
 
           <Button
-            onClick={finishQuiz}
+            onClick={handleManualSubmit}
             disabled={isSubmitting}
             className="w-full h-14 bg-indigo-900 hover:bg-indigo-800 text-white rounded-2xl font-black text-lg shadow-lg"
           >
