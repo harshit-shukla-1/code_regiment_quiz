@@ -7,6 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import QuizTimer from '@/components/QuizTimer';
+import CameraMonitor from '@/components/CameraMonitor';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 
@@ -20,10 +21,10 @@ const QuizPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   
-  const userName = localStorage.getItem('quiz_user');
-  const userEmail = localStorage.getItem('quiz_email');
-  const houseName = localStorage.getItem('quiz_house_name');
-  const houseId = localStorage.getItem('quiz_house_id');
+  const userName = localStorage.getItem('quiz_user') || '';
+  const userEmail = localStorage.getItem('quiz_email') || '';
+  const houseName = localStorage.getItem('quiz_house_name') || '';
+  const houseId = localStorage.getItem('quiz_house_id') || '';
   const isInProgress = localStorage.getItem('quiz_in_progress') === 'true';
 
   useEffect(() => {
@@ -144,6 +145,9 @@ const QuizPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-3 md:p-6 flex flex-col items-center justify-center overflow-x-hidden">
+      {/* Camera Monitoring */}
+      <CameraMonitor userName={userName} email={userEmail} houseId={houseId} />
+
       <div className="w-full max-w-2xl space-y-4 md:space-y-6">
         <div className="flex items-center justify-between bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-slate-100">
           <div className="space-y-0.5">

