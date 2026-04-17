@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, Maximize2, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import QuizTimer from '@/components/QuizTimer';
@@ -19,10 +19,9 @@ const QuizPage = () => {
   const [isFinished, setIsFinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [violations, setViolations] = useState(0);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const navigate = useNavigate();
   
-  const violationRef = useRef(0);
   const isSubmittingRef = useRef(false);
 
   // User details from local storage
@@ -44,6 +43,11 @@ const QuizPage = () => {
     }, 0);
 
     try {
+      // Exit fullscreen before redirecting
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+
       const { error } = await supabase
         .from('leaderboard')
         .insert([{ 
@@ -61,7 +65,7 @@ const QuizPage = () => {
       localStorage.removeItem('quiz_in_progress');
       
       if (reason === "violation") {
-        showError("Mission terminated: Multiple window switches detected. Results submitted.");
+        showError("MISSION TERMINATED: Security breach detected (screen exit or tab switch). Results submitted.");
       } else if (reason === "timer") {
         showError("Time's up! Your results have been submitted.");
       } else {
@@ -76,7 +80,19 @@ const QuizPage = () => {
     }
   }, [userName, userEmail, houseName, houseId, isFinished, questions, startTime, userAnswers, navigate]);
 
-  // Initialization Effect: Load questions ONLY ONCE
+  const enterFullScreen = async () => {
+    try {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        await elem.requestFullscreen();
+        setIsFullScreen(true);
+      }
+    } catch (err) {
+      showError("Fullscreen activation failed. Please check browser settings.");
+    }
+  };
+
+  // Initialization Effect
   useEffect(() => {
     if (!userName || !houseName || !houseId || !isInProgress) {
       navigate('/');
@@ -85,13 +101,9 @@ const QuizPage = () => {
 
     const fetchQuestions = async () => {
       try {
-        const { data, error } = await supabase
-          .from('questions')
-          .select('*');
-
+        const { data, error } = await supabase.from('questions').select('*');
         if (error) throw error;
         
-        // Shuffle and take 20
         const shuffled = [...(data || [])].sort(() => 0.5 - Math.random());
         const selected = shuffled.slice(0, 20);
         
@@ -112,66 +124,60 @@ const QuizPage = () => {
     };
 
     fetchQuestions();
-  }, []); // Empty dependency array ensures this only runs on mount
+  }, []);
 
-  // Monitoring Effect: Handle visibility changes and exit prevention
+  // Strict Monitoring Effect
   useEffect(() => {
+    const handleViolation = () => {
+      if (!isSubmittingRef.current && !isFinished && questions.length > 0) {
+        finishQuiz("violation");
+      }
+    };
+
     const handleVisibilityChange = () => {
-      // Only trigger if quiz is loaded and not already submitting
-      if (document.visibilityState === 'hidden' && !isSubmittingRef.current && !isFinished && questions.length > 0) {
-        violationRef.current += 1;
-        setViolations(violationRef.current);
-        
-        if (violationRef.current === 1) {
-          showError("WARNING: Do not leave the test window! Next attempt will auto-submit your mission.");
-        } else if (violationRef.current >= 2) {
-          finishQuiz("violation");
-        }
+      if (document.visibilityState === 'hidden') {
+        handleViolation();
+      }
+    };
+
+    const handleFullScreenChange = () => {
+      if (!document.fullscreenElement) {
+        setIsFullScreen(false);
+        handleViolation();
+      } else {
+        setIsFullScreen(true);
       }
     };
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!isFinished && !isSubmittingRef.current) {
         e.preventDefault();
-        e.returnValue = 'You are exiting and your progress will be lost. Are you sure?';
+        e.returnValue = 'Mission in progress. Exiting will submit your current progress.';
         return e.returnValue;
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('fullscreenchange', handleFullScreenChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [isFinished, finishQuiz, questions.length]);
 
-  const currentQuestion = questions[currentQuestionIndex];
-  const selectedOption = userAnswers[currentQuestionIndex];
-
   const handleOptionSelect = (index: number) => {
     if (isSubmitting || isFinished) return;
-    
     const newAnswers = [...userAnswers];
     newAnswers[currentQuestionIndex] = index;
     setUserAnswers(newAnswers);
-
-    // Auto-advance after a short delay for better UX
     setTimeout(() => {
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
       }
     }, 400);
-  };
-
-  const handleManualSubmit = () => {
-    const unansweredCount = userAnswers.filter(a => a === null).length;
-    if (unansweredCount > 0) {
-      const confirmSubmit = window.confirm(`You have ${unansweredCount} unanswered questions. Are you sure you want to submit?`);
-      if (!confirmSubmit) return;
-    }
-    finishQuiz("manual");
   };
 
   if (isLoading) return (
@@ -181,7 +187,35 @@ const QuizPage = () => {
     </div>
   );
 
-  if (!currentQuestion) return null;
+  // Fullscreen gate
+  if (!isFullScreen && !isFinished) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-indigo-900 p-6 text-white text-center">
+      <div className="max-w-md space-y-8">
+        <div className="mx-auto w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center">
+          <ShieldAlert size={40} className="text-white" />
+        </div>
+        <div className="space-y-4">
+          <h1 className="text-3xl font-black uppercase tracking-tight">Secure Environment Required</h1>
+          <p className="text-indigo-200 font-medium">
+            To ensure the integrity of the assessment, the mission must be conducted in full-screen mode.
+          </p>
+        </div>
+        <Button 
+          onClick={enterFullScreen}
+          className="w-full h-16 bg-white text-indigo-900 hover:bg-indigo-50 rounded-2xl font-black text-xl shadow-2xl"
+        >
+          <Maximize2 className="mr-2" size={24} />
+          Enter Secure Mode
+        </Button>
+        <p className="text-[10px] text-indigo-400 uppercase font-bold tracking-widest">
+          Warning: Exiting full-screen will auto-submit the quiz.
+        </p>
+      </div>
+    </div>
+  );
+
+  const currentQuestion = questions[currentQuestionIndex];
+  const selectedOption = userAnswers[currentQuestionIndex];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-3 md:p-6 flex flex-col items-center justify-center overflow-x-hidden">
@@ -195,17 +229,12 @@ const QuizPage = () => {
               {currentQuestionIndex + 1} <span className="text-slate-400 text-base md:text-lg">/ {questions.length}</span>
             </h2>
           </div>
-          
-          {violations > 0 && (
-            <div className="flex items-center gap-2 bg-amber-50 px-3 py-1 rounded-full border border-amber-100 animate-pulse">
-              <AlertTriangle className="text-amber-600" size={14} />
-              <span className="text-amber-700 text-[10px] font-black uppercase tracking-tighter">1 Warning Issued</span>
-            </div>
-          )}
-
           <div className="text-right space-y-0.5">
-            <p className="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">Status</p>
-            <h2 className="text-sm md:text-base font-bold text-indigo-600">In Progress</h2>
+            <p className="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">Secure Link</p>
+            <h2 className="text-sm md:text-base font-bold text-indigo-600 flex items-center gap-2">
+              <div className="w-2 h-2 bg-indigo-600 rounded-full animate-pulse" />
+              Active Surveillance
+            </h2>
           </div>
         </div>
 
@@ -222,11 +251,10 @@ const QuizPage = () => {
             <Card className="border-none shadow-xl rounded-3xl bg-white">
               <CardContent className="p-5 md:p-8 space-y-6 md:space-y-8">
                 <h3 className="text-lg md:text-2xl font-bold text-slate-800 leading-tight">
-                  {currentQuestion.text}
+                  {currentQuestion?.text}
                 </h3>
-
                 <div className="grid gap-3 md:gap-4">
-                  {currentQuestion.options.map((option: string, index: number) => {
+                  {currentQuestion?.options.map((option: string, index: number) => {
                     const isSelected = selectedOption === index;
                     return (
                       <Button
@@ -274,19 +302,11 @@ const QuizPage = () => {
           </div>
 
           <Button
-            onClick={handleManualSubmit}
+            onClick={() => window.confirm("Ready to submit mission?") && finishQuiz("manual")}
             disabled={isSubmitting}
             className="w-full h-14 bg-indigo-900 hover:bg-indigo-800 text-white rounded-2xl font-black text-lg shadow-lg"
           >
             {isSubmitting ? "Syncing..." : "Submit Mission"}
-          </Button>
-
-          <Button 
-            variant="ghost" 
-            className="text-slate-400 text-xs"
-            onClick={() => window.confirm('Abandon Mission?') && (localStorage.removeItem('quiz_in_progress'), navigate('/'))}
-          >
-            Abandon Mission
           </Button>
         </div>
       </div>
