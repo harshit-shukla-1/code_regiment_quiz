@@ -25,6 +25,7 @@ const QuizPage = () => {
   const violationRef = useRef(0);
   const isSubmittingRef = useRef(false);
 
+  // User details from local storage
   const userName = localStorage.getItem('quiz_user') || '';
   const userEmail = localStorage.getItem('quiz_email') || '';
   const houseName = localStorage.getItem('quiz_house_name') || '';
@@ -61,6 +62,8 @@ const QuizPage = () => {
       
       if (reason === "violation") {
         showError("Mission terminated: Multiple window switches detected. Results submitted.");
+      } else if (reason === "timer") {
+        showError("Time's up! Your results have been submitted.");
       } else {
         showSuccess(`Mission accomplished! Score: ${finalScore}/${questions.length}`);
       }
@@ -73,6 +76,7 @@ const QuizPage = () => {
     }
   }, [userName, userEmail, houseName, houseId, isFinished, questions, startTime, userAnswers, navigate]);
 
+  // Initialization Effect: Load questions ONLY ONCE
   useEffect(() => {
     if (!userName || !houseName || !houseId || !isInProgress) {
       navigate('/');
@@ -87,6 +91,7 @@ const QuizPage = () => {
 
         if (error) throw error;
         
+        // Shuffle and take 20
         const shuffled = [...(data || [])].sort(() => 0.5 - Math.random());
         const selected = shuffled.slice(0, 20);
         
@@ -107,9 +112,13 @@ const QuizPage = () => {
     };
 
     fetchQuestions();
+  }, []); // Empty dependency array ensures this only runs on mount
 
+  // Monitoring Effect: Handle visibility changes and exit prevention
+  useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && !isSubmittingRef.current && !isFinished) {
+      // Only trigger if quiz is loaded and not already submitting
+      if (document.visibilityState === 'hidden' && !isSubmittingRef.current && !isFinished && questions.length > 0) {
         violationRef.current += 1;
         setViolations(violationRef.current);
         
@@ -136,7 +145,7 @@ const QuizPage = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [userName, houseName, houseId, isInProgress, isFinished, navigate, finishQuiz]);
+  }, [isFinished, finishQuiz, questions.length]);
 
   const currentQuestion = questions[currentQuestionIndex];
   const selectedOption = userAnswers[currentQuestionIndex];
@@ -148,6 +157,7 @@ const QuizPage = () => {
     newAnswers[currentQuestionIndex] = index;
     setUserAnswers(newAnswers);
 
+    // Auto-advance after a short delay for better UX
     setTimeout(() => {
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
